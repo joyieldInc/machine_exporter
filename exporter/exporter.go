@@ -101,12 +101,19 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
+	e.resetMetrics()
 	e.scrape()
 	for _, g := range e.globalGauges {
 		ch <- g
 	}
 	for _, g := range e.netGauges {
 		g.Collect(ch)
+	}
+}
+
+func (e *Exporter) resetMetrics() {
+	for _, g := range e.netGauges {
+		g.Reset()
 	}
 }
 
@@ -226,6 +233,7 @@ func (e *Exporter) scrapeNet() {
 			log.Printf("New ethtool err:%v\n", err)
 			return
 		}
+		defer et.Close()
 		cmd := &ethtool.EthtoolCmd{}
 		for _, iface := range ifaces {
 			if iface == "lo" {
