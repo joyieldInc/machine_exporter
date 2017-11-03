@@ -181,19 +181,27 @@ func (e *Exporter) scrapeMem() {
 	if err != nil {
 		log.Printf("Read %s error:%v\n", proc_meminfo, err)
 	} else {
-		var total, available int64
+		mem := map[string]int64{
+            "MemTotal:":     0,
+            "MemFree:":      0,
+            "MemAvailable:": 0,
+            "Buffers:":      0,
+            "Cached:":       0}
 		for _, line := range strings.Split(string(s), "\n") {
 			ss := strings.Fields(line)
 			if len(ss) < 3 {
 				continue
 			}
-			if ss[0] == "MemTotal:" {
-				total, _ = strconv.ParseInt(ss[1], 10, 64)
-				total *= unit(ss[2])
-			} else if ss[0] == "MemAvailable:" {
-				available, _ = strconv.ParseInt(ss[1], 10, 64)
-				available *= unit(ss[2])
+			if _, ok := mem[ss[0]]; ok {
+                v, _ := strconv.ParseInt(ss[1], 10, 64)
+                v *= unit(ss[2])
+				mem[ss[0]] = v
 			}
+		}
+        total := mem["MemTotal:"]
+        available := mem["MemAvailable:"]
+		if available == 0 {
+            available = mem["MemFree:"] + mem["Buffers:"] + mem["Cached:"]
 		}
 		e.globalGauges[used_memory].Set(float64(total - available))
 		e.globalGauges[available_memory].Set(float64(available))
