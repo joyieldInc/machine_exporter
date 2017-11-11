@@ -182,26 +182,26 @@ func (e *Exporter) scrapeMem() {
 		log.Printf("Read %s error:%v\n", proc_meminfo, err)
 	} else {
 		mem := map[string]int64{
-            "MemTotal:":     0,
-            "MemFree:":      0,
-            "MemAvailable:": 0,
-            "Buffers:":      0,
-            "Cached:":       0}
+			"MemTotal:":     0,
+			"MemFree:":      0,
+			"MemAvailable:": 0,
+			"Buffers:":      0,
+			"Cached:":       0}
 		for _, line := range strings.Split(string(s), "\n") {
 			ss := strings.Fields(line)
 			if len(ss) < 3 {
 				continue
 			}
 			if _, ok := mem[ss[0]]; ok {
-                v, _ := strconv.ParseInt(ss[1], 10, 64)
-                v *= unit(ss[2])
+				v, _ := strconv.ParseInt(ss[1], 10, 64)
+				v *= unit(ss[2])
 				mem[ss[0]] = v
 			}
 		}
-        total := mem["MemTotal:"]
-        available := mem["MemAvailable:"]
+		total := mem["MemTotal:"]
+		available := mem["MemAvailable:"]
 		if available == 0 {
-            available = mem["MemFree:"] + mem["Buffers:"] + mem["Cached:"]
+			available = mem["MemFree:"] + mem["Buffers:"] + mem["Cached:"]
 		}
 		e.globalGauges[used_memory].Set(float64(total - available))
 		e.globalGauges[available_memory].Set(float64(available))
@@ -222,18 +222,22 @@ func (e *Exporter) scrapeNet() {
 	lines = lines[2:]
 	ifaces := []string{}
 	for _, line := range lines {
-		ss := strings.Fields(line)
-		if len(ss) < 17 {
+		segs := strings.Split(line, ":")
+		if len(segs) != 2 {
 			continue
 		}
-		iface := ss[0][:len(ss[0])-1]
+		iface := strings.Trim(segs[0], " ")
+		ss := strings.Fields(segs[1])
+		if len(ss) < 16 {
+			continue
+		}
 		ifaces = append(ifaces, iface)
-		e.setNet(total_net_input_bytes, ss[1], iface)
-		e.setNet(total_net_input_errs, ss[3], iface)
-		e.setNet(total_net_input_drop, ss[4], iface)
-		e.setNet(total_net_output_bytes, ss[9], iface)
-		e.setNet(total_net_output_errs, ss[11], iface)
-		e.setNet(total_net_output_drop, ss[12], iface)
+		e.setNet(total_net_input_bytes, ss[0], iface)
+		e.setNet(total_net_input_errs, ss[2], iface)
+		e.setNet(total_net_input_drop, ss[3], iface)
+		e.setNet(total_net_output_bytes, ss[8], iface)
+		e.setNet(total_net_output_errs, ss[10], iface)
+		e.setNet(total_net_output_drop, ss[11], iface)
 	}
 	if len(ifaces) > 0 {
 		et, err := ethtool.NewEthtool()
@@ -250,7 +254,7 @@ func (e *Exporter) scrapeNet() {
 			}
 			speed, err := et.CmdGet(cmd, iface)
 			if err != nil {
-				log.Printf("ethtool cmdget %s err:%v\n", iface)
+				log.Printf("ethtool cmdget %s err:%v\n", iface, err)
 			} else {
 				e.netGauges[interface_speed].WithLabelValues(iface).Set(float64(speed << 17))
 			}
