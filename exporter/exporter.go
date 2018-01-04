@@ -26,6 +26,8 @@ const (
 	used_cpu_user          = "used_cpu_user"
 	used_cpu_sys           = "used_cpu_sys"
 	used_cpu_iowait        = "used_cpu_iowait"
+	used_cpu_irq           = "used_cpu_irq"
+	used_cpu_softirq       = "used_cpu_softirq"
 	used_cpu               = "used_cpu"
 	used_cpu_idle          = "used_cpu_idle"
 	cpu                    = "cpu"
@@ -46,6 +48,8 @@ var (
 		{used_cpu_user, "Used cpu user"},
 		{used_cpu_sys, "Used cpu sys"},
 		{used_cpu_iowait, "Used cpu iowait"},
+		{used_cpu_irq, "Used cpu irq"},
+		{used_cpu_softirq, "Used cpu softirq"},
 		{used_cpu, "Used cpu total"},
 		{used_cpu_idle, "Used cpu idle"},
 		{cpu, "Total cpu"},
@@ -157,6 +161,10 @@ func (e *Exporter) scrapeCpu() {
 				e.globalGauges[used_cpu_idle].Set(float64(idle) / 100.)
 				iowait, _ := strconv.ParseInt(ss[5], 10, 64)
 				e.globalGauges[used_cpu_iowait].Set(float64(iowait) / 100.)
+				irq, _ := strconv.ParseInt(ss[6], 10, 64)
+				e.globalGauges[used_cpu_irq].Set(float64(irq) / 100.)
+				softirq, _ := strconv.ParseInt(ss[7], 10, 64)
+				e.globalGauges[used_cpu_softirq].Set(float64(softirq) / 100.)
 				used := int64(0)
 				for i := 1; i < len(ss); i++ {
 					if i != 4 {
